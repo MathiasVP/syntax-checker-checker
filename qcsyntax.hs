@@ -333,12 +333,12 @@ genQuotePair size = liftM2 QuotePair (genQuotation size')
   where size' = size `div` 2
 
 shrinkQuotation :: Quotation -> [Quotation]
-shrinkQuotation (QuoteNumber n) = [QuoteEmpty, QuoteNumber n]
-shrinkQuotation (QuoteBoolean b) = [QuoteEmpty, QuoteBoolean b]
-shrinkQuotation (QuoteChar c) = [QuoteEmpty, QuoteChar c]
-shrinkQuotation (QuoteString s) = [QuoteEmpty, QuoteString s]
-shrinkQuotation (QuoteSymbol s) = [QuoteEmpty, QuoteSymbol s]
-shrinkQuotation QuoteEmpty = [QuoteEmpty]
+shrinkQuotation (QuoteNumber _) = [QuoteEmpty]
+shrinkQuotation (QuoteBoolean _) = [QuoteEmpty]
+shrinkQuotation (QuoteChar _) = [QuoteEmpty]
+shrinkQuotation (QuoteString _) = [QuoteEmpty]
+shrinkQuotation (QuoteSymbol _) = [QuoteEmpty]
+shrinkQuotation QuoteEmpty = []
 shrinkQuotation (QuotePair q1 q2) =
   QuoteEmpty : [QuotePair q1' q2' | q1' <- shrink q1
                                      , q2' <- shrink q2 ]

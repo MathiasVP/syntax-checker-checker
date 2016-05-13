@@ -1,9 +1,562 @@
-; Exercise 0
-; Scheme syntax evaluator
-; Mathias Vorreiter Pedersen, 20112238
-; ------------------------------------------
-; Helper functions
-; ------------------------------------------
+;;;;;;;;;;
+
+(define check-silently
+  #t)
+
+;;;;;;;;;;
+
+(define check-program
+  (lambda (v)
+    (cond
+      [(null? v)
+       #t]
+      [(pair? v)
+       (and (check-toplevel-form (car v))
+            (check-program (cdr v)))]
+      [else
+       (begin
+         (unless check-silently
+           (printf "check-program -- unrecognized input: ~s~n" v))
+         #f)])))
+
+;;;;;;;;;;
+
+(define check-toplevel-form
+  (lambda (v)
+    (cond
+      [(is-definition? v)
+       (check-definition (define-1 v) (define-2 v))]
+      [else
+       (check-expression v)])))
+
+;;;;;;;;;;
+
+;;;;;;;;;;
+;;; basic predicates and accessors for definitions:
+;;;;;;;;;;
+
+;;; predicate:
+(define is-definition?
+  (lambda (v)
+    (if (pair? v) (and (proper-list-of-given-length? v 3)
+         (equal? (car v) 'define))(begin (unless check-silently (printf "is-definition -- unrecognized input: ~s~n" v)) #f))))
+
+;;; 1st accessor:
+(define define-1
+  (lambda (v)
+    (list-ref v 1)))
+
+;;; 2nd accessor:
+(define define-2
+  (lambda (v)
+    (list-ref v 2)))
+
+;;;;;;;;;;
+;;; the syntax checker proper for definitions:
+;;;;;;;;;;
+
+(define check-definition
+  (lambda (name definiens)
+    (and (check-variable name)
+         (check-expression definiens))))
+
+;;;;;;;;;;
+
+;;;;;;;;;;
+;;; basic predicates and accessors for expressions:
+;;;;;;;;;;
+
+;;; predicate:
+(define is-time?
+  (lambda (v)
+    (if (pair? v)(and (proper-list-of-given-length? v 2)
+         (equal? (car v) 'time))(begin (unless check-silently (printf "check-let-bindings -- unrecognized input: ~s~n" v)) #f))))
+
+;;; 1st accessor:
+(define time-1
+  (lambda (v)
+    (list-ref v 1)))
+
+;;;;;
+
+;;; predicate:
+(define is-if?
+  (lambda (v)
+    (if (pair? v)(and (proper-list-of-given-length? v 4)
+         (equal? (car v) 'if))(begin (unless check-silently (printf "check-let-bindings -- unrecognized input: ~s~n" v)) #f))))
+
+;;; 1st accessor:
+(define if-1
+  (lambda (v)
+    (list-ref v 1)))
+
+;;; 2nd accessor:
+(define if-2
+  (lambda (v)
+    (list-ref v 2)))
+
+;;; 3rd accessor:
+(define if-3
+  (lambda (v)
+    (list-ref v 3)))
+
+;;;;;
+
+;;; predicate:
+(define is-and?
+  (lambda (v)
+    (and (pair? v)
+         (equal? (car v) 'and))))
+
+;;;;;
+
+;;; predicate:
+(define is-not?
+  (lambda (v)
+    (and (pair? v)
+         (equal? (car v) 'not))))
+
+;;;;;
+
+
+;;; predicate:
+(define is-or?
+  (lambda (v)
+    (and (pair? v)
+         (equal? (car v) 'or))))
+
+;;;;;
+
+;;; predicate:
+(define is-cond?
+  (lambda (v)
+    (and (pair? v)
+         (equal? (car v) 'cond))))
+
+;;;;;
+
+;;; predicate:
+(define is-case?
+  (lambda (v)
+    (and (list-strictly-longer-than? v 2)
+         (equal? (car v) 'case))))
+
+;;;;;
+
+;;; predicate:
+(define is-let?
+  (lambda (v)
+    (and (proper-list-of-given-length? v 3)
+		 (list? (list-ref v 1))
+         (equal? (car v) 'let))))
+
+
+
+;;;;;
+
+;;; predicate:
+(define is-letstar?
+  (lambda (v)
+    (and (proper-list-of-given-length? v 3)
+         (equal? (car v) 'let*))))
+
+;;;;;
+
+;;; predicate:
+(define is-letrec?
+  (lambda (v)
+    (and (proper-list-of-given-length? v 3)
+         (equal? (car v) 'letrec)
+		 (list? (list-ref v 1)))))
+
+;;;;;
+
+;;; predicate:
+(define is-begin?
+  (lambda (v)
+    (and (list-strictly-longer-than? v 1)
+         (equal? (car v) 'begin))))
+
+
+
+;;;;;
+;;; predicate:
+(define is-trace-lambda?
+  (lambda (v)
+    (and (proper-list-of-given-length? v 4)
+         (equal? (car v) 'trace-lambda))))
+		 
+;;; predicate:
+(define is-lambda?
+  (lambda (v)
+    (and (proper-list-of-given-length? v 3)
+         (equal? (car v) 'lambda))))
+		 
+;;; 1st accessor:
+(define lambda-1
+  (lambda (v)
+    (list-ref v 1)))
+
+;;; 2nd accessor:
+(define lambda-2
+  (lambda (v)
+    (list-ref v 2)))
+
+;;; predicate:
+(define is-unless?
+  (lambda (v)
+    (and (proper-list-of-given-length? v 3)
+         (equal? (car v) 'unless))))
+
+;;; 1st accessor:
+(define unless-1
+  (lambda (v)
+    (list-ref v 1)))
+
+;;; 2nd accessor:
+(define unless-2
+  (lambda (v)
+    (list-ref v 2)))
+
+;;;;;
+
+;;; predicate:
+(define is-quote?
+  (lambda (v)
+    (and (proper-list-of-given-length? v 2)
+         (equal? (car v) 'quote))))
+
+;;; 1st accessor:
+(define quote-1
+  (lambda (v)
+    (list-ref v 1)))
+
+		 
+;;; predicate:
+(define is-application?
+  (lambda (v)
+    (and (pair? v)
+         (let ([w (car v)])
+           (if (symbol? w)
+               (keyword? w)
+               #t)))))
+
+;;; 1st accessor:
+(define application-operator
+  car)
+
+;;; 2nd accessor:
+(define application-operands
+  cdr)
+ 
+;;;;;;;;;;
+;;; the syntax checker proper for expressions:
+;;;;;;;;;;
+(define check-expressions
+  (lambda (v)
+	(cond 
+		[(null? v) #t]
+		[(pair? v)
+		(and (check-expression (car v))
+			(check-expressions (cdr v)))]
+		[else
+			(begin (unless check-silently (printf "check-let-bindings -- unrecognized input: ~s~n" v)) #f)])))
+  
+(define check-expression
+  (lambda (v)
+    (cond
+	[(null? v)#f]
+      [(number? v)
+       #t]
+      [(boolean? v)
+       #t]
+      [(char? v)
+       #t]
+      [(string? v)
+       #t]
+      [(symbol? v)
+       (check-variable v)]
+      [(is-time? v)
+       (check-time-expression (time-1 v))]
+      [(is-if? v)
+       (check-if-expression (if-1 v) (if-2 v) (if-3 v))]
+	  [(is-not? v)
+	   (check-expressions (cdr v))]
+	  [(is-and? v)
+       (check-expressions (cdr v))]
+	  [(is-or? v)
+       (check-expressions (cdr v))]
+	  [(is-cond? v)
+       (check-cond-expression v)]
+	  [(is-case? v)
+       (and (check-expression (cdr (car v)))(check-case-clauses (cdr (cdr v))))]
+	  [(is-begin? v)
+       (check-begin-expression v)]
+      [(is-unless? v)
+       (check-unless-expression (unless-1 v) (unless-2 v))]
+      [(is-quote? v)
+       (check-quote-expression (quote-1 v))]
+      [(is-lambda? v)
+       (check-lambda-abstraction (cdr v))]
+      [(is-trace-lambda? v)
+       (and (check-variable (cdr (car v))) 
+		(check-lambda-abstraction (cdr (cdr v))))]
+      [(is-application? v)
+       (check-application (application-operator v) (application-operands v))]
+	  [(is-let? v)
+       (check-let-expression v)]
+	  [(is-letstar? v)
+       (check-letstar-expression v)]
+	  [(is-letrec? v)
+       (check-letrec-expression v)]
+      [else
+       (begin
+         (unless check-silently
+           (printf "check-expression -- unrecognized input: ~s~n" v))
+         #f)])))
+
+
+(define check-variable
+  (lambda (v)
+    (if (keyword? v) #t ((begin
+         (unless check-silently
+           (printf "check-variable -- unrecognized input: ~s~n" v))
+         #f)))))
+
+(define check-time-expression
+  (lambda (v)
+    (check-expression (time-1 v))))
+
+(define check-if-expression
+  (lambda (test consequent alternative)
+    (and (check-expression test)
+         (check-expression consequent)
+         (check-expression alternative))))
+		 
+		 
+		 
+(define check-cond-expression
+	(lambda (v)
+		(check-cond-clauses (cdr v))))
+
+(define check-cond-clauses
+	(lambda (v)
+		(cond 
+			[(not (proper-list-of-given-length? v 1))
+				(and (check-cond-clause (car v))
+					 (check-cond-clauses (cdr v)))]
+			[(proper-list-of-given-length? (car v) 2)
+				(check-else-clause v)]
+			[else
+				 (begin
+					(unless check-silently
+						(printf "check-cond-clauses  -- unrecognized input: ~s~n" v))
+					#f)]
+			)))
+
+			
+(define check-cond-clause 
+	(lambda (v)
+		(cond 
+			[(proper-list-of-given-length? v 1) (check-expression (car v))]
+			[(proper-list-of-given-length? v 2)
+				(and (check-expression(cdr v))
+					(check-expression (car v)))]
+			[(proper-list-of-given-length? v 3)
+				(and 	(check-expression (car v))
+						(equal? (list-ref v 1) '=> )
+						(check-expression (list-ref v 2)))]
+			[else (begin
+					(unless check-silently
+						(printf "check-cond-clause -- not a else clause in the end ~s ~n" v))
+					#f)])))
+
+(define check-else-clause
+	(lambda (v)
+		(if (pair? v) ((equal? (car v) 'else)
+				(check-expression (cdr v)))(begin (unless check-silently (printf "check-let-bindings -- unrecognized input: ~s~n" v)) #f))))
+				
+(define check-begin-expression
+  (lambda (v)
+    (if (null? v) #t 
+		(and (check-expression (car v))
+			 (check-begin-expression (cdr v))))))
+
+(define check-unless-expression
+  (lambda (test consequent)
+    (and (check-expression test)
+         (check-expression consequent))))
+
+(define check-quote-expression
+  (lambda (v)
+    (errorf 'check-quote-expression "not implemented yet")))
+
+(define check-application
+  (lambda (v vs)
+    (and 	(check-expression v)
+			(check-expressions vs))))
+
+
+(define check-lambda-abstraction
+	(lambda (v)
+		(cond	[(null? v) #f]
+				[(proper-list-of-given-length? v 2)
+					(and	(check-lambda-formals (car v))
+							(check-expression (cdr v)))]
+				[(not (proper-list-of-given-length? v 1))
+				(and 	(check-lambda-formals (car v))
+						(check-lambda-abstraction (cdr v)))]
+				[else
+				 (begin
+					(unless check-silently
+						(printf "check-expression -- unrecognized input: ~s~n" v))
+					#f)])))
+
+	
+(define check-lambda-formals
+	(lambda (f)
+		(cond 	[(null? f)
+				 #t]
+				[(symbol? f)
+				 (check-variable f)]
+				[(pair? f) 
+				 (and	(check-variable (car f))
+						(check-lambda-formals (cdr f))
+						(not (member (car f) (cdr f))))]
+				[else
+				 (begin
+					(unless check-silently
+						(printf "check-lambda-formals -- unrecognized input: ~s~n" v))
+					#f)])))
+
+(define check-case-expression
+ (lambda (v)
+	(if (pair? v) (and (check-expression (cdr (car v)))
+		(check-case-clauses (cdr (cdr c))))(begin (unless check-silently (printf "check-case-expression -- unrecognized input: ~s~n" v)) #f))))
+
+(define check-case-clauses
+	(lambda (v)
+		(if (pair? v)
+			(or (and 	(check-case-clause (car v))
+						(check-case-clauses (cdr v)))
+				(check-else-clause v))
+		(begin (unless check-silently (printf "check-case-clauses -- unrecognized input: ~s~n" v)) #f))))
+			
+
+(define check-case-clause
+			(lambda (v)
+				(if (pair? v)(and (check-quotation-expression (car v))(check-expression (cdr v)))(begin (unless check-silently (printf "check-case-clause -- unrecognized input: ~s~n" v)) #f))))
+
+(define check-quotations
+	(lambda (v)
+		(cond 	[(null? v) #t]
+				[(pair? v)(and (check-quote-expression (car v))(check-quotations (cdr v)))]
+				[else (begin
+					(unless check-silently
+						(printf "check-quotations -- not a else clause in the end ~s ~n" v))
+					#f)])))
+				
+
+				
+(define check-let-expression
+	(lambda (v)
+		(letrec ([visit (lambda (v var)
+			(if (null? v)
+				(check-expression (list-ref v 2))
+				(and 	(not (member (list-ref (car l) 0) vars))
+						(check-let-binding (car v))
+						(visit (cdr v) (cons (list-ref (car v) 0) vars)))
+			))])(visit (cdr (car v)) '()))))
+
+(define check-let-binding
+	(lambda (v)
+		(if (pair? v)
+			(and (check-variable (car v))
+				(check-expression (cdr v)))
+		(begin
+					(unless check-silently
+						(printf "check-let-binding -- unrecognized input: ~s~n" v))
+					#f))))
+
+
+(define check-letstar-expression
+	(lambda (v)
+		(letrec ([visit (lambda (v)
+			(if (null? v)
+				(check-expression (list-ref v 2))
+				(and	(check-letstar-binding (car v))
+						(visit (cdr v)))
+			))])(visit (cdr (car v))))))
+	
+(define check-letstar-binding
+	(lambda (v)
+		(if (pair? v)
+			(and (check-variable (car v))
+				(check-expression (cdr v)))
+		(begin
+					(unless check-silently
+						(printf "check-letstar-binding -- unrecognized input: ~s~n" v))
+					#f))))
+
+
+
+(define check-letrec-expression
+	(lambda (v)
+		(letrec ([visit (lambda (x var)
+			(if (null? x)
+				(check-expression (list-ref v 2))
+				(and 	(not (member (list-ref (car x) 0) vars))
+						(check-letrec-binding (car x))
+						(visit (cdr x) (cons (list-ref (car x) 0) vars)))
+			))])(visit (cdr (car v)) '()))))
+
+(define check-letrec-binding
+	(lambda (v)
+		(if (pair? v)
+			(and (check-variable (car v))
+				(check-lambda-abstraction (cdr v)))
+		(begin
+					(unless check-silently
+						(printf "check-letrec-binding -- unrecognized input: ~s~n" v))
+					#f))))
+
+
+(define check-quote-expression
+	(lambda (v)
+		(cond [(null? v) #t]
+				[(number? v) #t]
+				[(boolean? v) #t]
+				[(char? v) #t]
+				[(string? v) #t]
+				[(symbol? v) #t]
+				[(pair? v)(and(check-quote-expression (car v))(check-quote-expression (cdr v)))]
+		
+		[else (begin
+					(unless check-silently
+						(printf "check-quote-- unrecognized input: ~s~n" v))
+					#f)])))
+					
+;;;;;;;;;;
+;;; auxiliaries:
+;;;;;;;;;;
+
+(define keyword?
+  (lambda (w)
+    (not (member w (list 'define 'time 'if 'cond 'else 'case 'and 'or 
+				'let 'let* 'letrec 'begin 'unless 'quote 'lambda 'trace-lambda)
+	))))
+
+(define list-strictly-longer-than?
+  (lambda (v n)
+    (letrec ([visit (lambda (v i)
+                      (and (pair? v)
+                           (or (= i 0)
+                               (visit (cdr v)
+                                      (- i 1)))))])
+      (if (>= n 0)
+          (visit v n)
+          (errorf 'list-strictly-longer-than? "negative length: ~s" n)))))
+		  
 
 (define proper-list-of-given-length?
   (lambda (v n)
@@ -13,440 +566,8 @@
              (> n 0)
              (proper-list-of-given-length? (cdr v)
                                            (- n 1))))))
-
-(define list-at-least-as-long-as?
-  (lambda (v n)
-    (letrec ([visit (lambda (v i)
-                      (or (= i 0)
-                           (and (pair? v)
-                                (visit (cdr v)
-                                       (- i 1)))))])
-      (if (>= n 0)
-          (visit v n)
-          (errorf 'list-at-least-as-long-as? "negative length: ~s" n)))))
-
-(define propify
-  (lambda (x)
-    (letrec ([visit
-              (lambda (xs ys)
-                (cond
-                  [(not (pair? xs))
-                   (append ys (list xs))]
-                  [else
-                   (visit (cdr xs) (append ys (list (car xs))))]))])
-      (visit x '()))))
-
-; ------------------------------------------
-; Predicates
-; ------------------------------------------
-; Helper functions
-(define generic-is
-  (lambda (x keyword length length-eval-func)
-    (if(pair? x)
-       (and (length-eval-func x length)
-            (equal? (car x) keyword))
-       #f)))
-
-(define generic-exact-is
-  (lambda (x keyword length)
-    (generic-is x keyword length
-                proper-list-of-given-length?)))
-
-(define generic-at-least-is
-  (lambda (x keyword length)
-    (generic-is x keyword length
-                list-at-least-as-long-as?)))
-
-; Actual predicates
-(define is-time?
-  (lambda (x)
-    (generic-exact-is x 'time 2)))
-
-(define is-if?
-  (lambda (x)
-    (generic-exact-is x 'if 4)))
-
-(define is-cond-clause?
-  (lambda (x)
-    (or (proper-list-of-given-length? x 1)
-        (proper-list-of-given-length? x 2)
-        (and (proper-list-of-given-length? x 3)
-             (equal? (list-ref x 1) '=>)))))
-
-(define is-cond?
-  (lambda (x)
-   (generic-at-least-is x 'cond 2)))
-
-(define is-case?
-  (lambda (x)
-    (generic-at-least-is x 'case 3)))
-
-(define is-definition?
-  (lambda (x)
-    (generic-exact-is x 'define 3)))
-
-(define is-or?
-  (lambda (x)
-    (generic-at-least-is x 'or 1)))
-
-(define is-and?
-  (lambda (x)
-    (generic-at-least-is x 'and 1)))
-
-(define is-quotation?
-  (lambda (x)
-    (or (number? x)
-        (boolean? x)
-        (char? x)
-        (string? x)
-        (symbol? x)
-        (equal? x '())
-        (and (pair? x)
-             (is-quotation? (car x))
-             (is-quotation? (cdr x))))))
-
-(define is-let?
-  (lambda (x)
-    (generic-exact-is x 'let 3)))
-
-(define is-let-star?
-  (lambda (x)
-      (generic-exact-is x 'let* 3)))
-
-(define is-let-rec?
-  (lambda (x)
-    (generic-exact-is x 'letrec 3)))
-
-(define is-begin?
-  (lambda (x)
-    (generic-at-least-is x 'begin 2)))
-
-(define is-quote?
-  (lambda (x)
-    (generic-exact-is x 'quote 2)))
-
-(define is-var?
-  (lambda (x)
-    (and (symbol? x)
-         (not (member x '(define
-                             time
-                             if
-                             cond
-                             else
-                             case
-                             and
-                             or
-                             let
-                             let*
-                             letrec
-                             begin
-                             quote
-                             quasiquote
-                             unquote
-                             unquote-splicing
-                             lambda
-                             trace-lambda))))))
-
-(define is-application?
-  (lambda (x)
-    (and
-     (list-at-least-as-long-as? x 1))))
-
-(define is-lambda-abs?
-  (lambda (x)
-    (or
-     (generic-exact-is x 'lambda 3)
-     (generic-exact-is x 'trace-lambda 4))))
-
-(define is-quasiquote?
-  (lambda (x)
-    (generic-exact-is x 'quasiquote 2)))
-
-(define is-unquote?
-  (lambda (x)
-    (equal? (car x) 'unquote)))
-
-(define is-unquote-splicing?
-  (lambda (x)
-    (equal? (car x) 'unquote-splicing)))
-
-; ------------------------------------------
-; Accessors
-; ------------------------------------------
-(define ref-0
-  (lambda (x)
-    (list-ref x 0)))
-
-(define ref-1
-  (lambda (x)
-    (list-ref x 1)))
-
-(define ref-2
-  (lambda (x)
-    (list-ref x 2)))
-
-(define ref-3
-  (lambda (x)
-    (list-ref x 3)))
-
-(define ref-=>
-  (lambda (x)
-    (if(equal? (ref-1 x) '=>)
-       (ref-2 x)
-       (ref-1 x))))
-
-; ------------------------------------------
-; Syntax checkers
-; ------------------------------------------
-; Helper functions
-(define check-distinct
-  (lambda (x)
-    (letrec ([visit
-              (lambda (y ys)
-                (cond
-                  [(null? ys)
-                   #t]
-                  [(member y ys)
-                   #f]
-                  [else
-                   (visit (car ys) (cdr ys))]))])
-      (or
-       (null? x)
-       (visit (car x) (cdr x))))))
-
-(define check-zero-or-more
-  (lambda (x checker distinct)
-    (and (list? x)
-         (if distinct
-             (and (check-distinct x)
-                  (andmap checker x))
-             (andmap checker x)))))
-
-(define check-one-or-more
-  (lambda (x checker distinct)
-    (and (if distinct
-             (check-distinct x)
-             #t)
-         (checker (car x))
-         (check-zero-or-more (cdr x) checker #f))))
-
-; Actual checkers
-(define check-time
-  (lambda (x)
-    (check-expression (ref-1 x))))
-
-(define check-if
-  (lambda (x)
-    (and (check-expression (ref-1 x))
-         (check-expression (ref-2 x))
-         (check-expression (ref-3 x)))))
-
-(define check-application
-  (lambda (x)
-    (check-one-or-more x check-expression #f)))
-
-(define check-cond
-  (lambda (x)
-    (letrec ([visit
-              (lambda (y n)
-                (cond
-                  [(or (null? y)
-                       (null? (car y))) #f]
-                  [(equal? (caar y) 'else)
-                   (and (equal? (length x) (1+ n))
-                        (check-expression (cdar y)))]
-                  [else
-                   (and (check-cond-clause (car y))
-                        (visit (cdr y) (1+ n)))]))])
-      (and
-       (not (null? x))
-       (pair? x)
-       (visit (cdr x) 1)))))
-
-(define check-cond-clause
-  (lambda (x)
-    (let ([n (length x)])
-      (cond
-        [(equal? n 1)
-         (check-expression (ref-0 x))]
-        [else
-         (and (check-expression (ref-0 x))
-              (check-expression (ref-=> x)))]))))
-
-(define check-begin
-  (lambda (x)
-    (check-one-or-more (cdr x) check-expression #f)))
-
-(define check-quotation
-  (lambda (x)
-    (or
-     (number? x)
-     (boolean? x)
-     (char? x)
-     (string? x)
-     (symbol? x)
-     (equal? '() x)
-     (and (check-quotation (car x))
-          (check-quotation (cdr x))))))
-
-(define check-expression
-  (lambda (x)
-    (cond
-      [(number? x) #t]
-      [(boolean? x) #t]
-      [(char? x) #t]
-      [(string? x) #t]
-      [(is-var? x) #t]
-      [(is-time? x)
-       (check-time x)]
-      [(is-if? x)
-       (check-if x)]
-      [(is-cond? x)
-       (check-cond x)]
-      [(is-case? x)
-       (check-case x)]
-      [(is-and? x)
-       (check-and x)]
-      [(is-or? x)
-       (check-or x)]
-      [(is-let? x)
-       (check-let x)]
-      [(is-let-star? x)
-       (check-let-star x)]
-      [(is-let-rec? x)
-       (check-let-rec x)]
-      [(is-begin? x)
-       (check-begin x)]
-      [(is-quote? x)
-       (check-quotation (ref-1 x))]
-      [(is-quasiquote? x)
-       (check-quasiquote (ref-1 x))]
-      [(is-lambda-abs? x)
-       (check-lambda-abs x)]
-      [(is-application? x)
-       (check-application x)]
-      [else #f])))
-
-(define check-case
-  (lambda (x)
-    (letrec ([check-case-body
-              (lambda (y n)
-                (cond
-                  [(or (null? y)
-                       (null? (car y))) #f]
-                  [(and (not (null? (caar y))) (equal? (caar y) 'else))
-                   (and (equal? n (length x))
-                        (pair? (cdar y))
-                        (equal? (length (cdar y)) 1)
-                        (check-expression (cadar y)))]
-                  [else
-                   (and
-                    (check-zero-or-more (caar y) check-quotation #f)
-                    (pair? (cdar y))
-                    (equal? (length (cdar y)) 1)
-                    (check-expression (cadar y))
-                    (check-case-body (cdr y) (1+ n)))]))])
-
-      (and (check-expression (list-ref x 1))
-           (check-case-body (cddr x) 3)))))
-
-(define check-and
-  (lambda (x)
-    (check-zero-or-more (cdr x) check-expression #f)))
-
-(define check-or
-  (lambda (x)
-    (check-zero-or-more (cdr x) check-expression #f)))
-
-(define check-definition
-  (lambda (x)
-    (and (is-var? (ref-1 x))
-         (check-expression (ref-2 x)))))
-
-(define check-lambda-formals
-  (lambda (x)
-    (cond
-      [(list? x)
-       (check-zero-or-more x is-var? #t)]
-      [(pair? x)
-       (check-one-or-more (propify x) is-var? #t)]
-      [else
-       (is-var? x)])))
-
-(define check-lambda-abs
-  (lambda (x)
-    (cond
-      [(not (is-lambda-abs? x)) #f]
-      [(equal? (car x) 'lambda)
-       (and (check-lambda-formals (list-ref x 1))
-            (check-expression (list-ref x 2)))]
-      [(equal? (car x) 'trace-lambda)
-       (and (symbol? (list-ref x 1))
-            (check-lambda-formals (list-ref x 2))
-            (check-expression (list-ref x 3)))]
-      [else #f])))
-
-(define check-generic-let
-  (lambda (x checker var-handler)
-    (letrec ([visit
-              (lambda (y vars)
-                (cond
-                  [(null? y) #t]
-                  [(not (pair? (car y))) #f]
-                  [(is-var? (caar y))
-                   (and (equal? (length (cdar y)) 1)
-                        (checker (cdar y))
-                        (not (member (caar y) vars))
-                        (visit (cdr y) (var-handler (caar y) vars)))]
-                  [else #f]))])
-      (and (list? (cadr x))
-           (visit (cadr x) '())
-           (check-expression (caddr x))))))
-
-(define check-let
-  (lambda (x)
-    (check-generic-let x check-expression cons)))
-
-(define check-let-star
-  (lambda (x)
-    (check-generic-let x check-expression (lambda (y vars) '()))))
-
-(define check-let-rec
-  (lambda (x)
-    (check-generic-let x (lambda (x)
-                           (check-lambda-abs (car x))) cons)))
-
-(define check-quasiquote
-  (trace-lambda check-quasiquote (x)
-    (letrec ([visit
-              (trace-lambda visit (y n)
-                (cond
-                  [(< n 0) #f]
-                  [(number? y) #t]
-                  [(boolean? y) #t]
-                  [(char? y) #t]
-                  [(string? y) #t]
-                  [(symbol? y) #t]
-                  [(null? y) #t]
-                  [(is-quasiquote? y)
-                   (visit (cdr y) (1+ n))]
-                  [(or (is-unquote? y)
-                       (is-unquote-splicing? y))
-                   (if(equal? n 0)
-                      (and (equal? (length (cdr y)) 1)
-                           (check-expression (cdr y)))
-                      (visit (cdr y) (1- n)))]
-                  [(pair? y)
-                   (and (visit (car y) n)
-                        (visit (cdr y) n))]
-                  [else (errorf 'check-quasiquote
-                                "Invalid expression: ~s"
-                                y)]))])
-      (visit x 0))))
-
-; ------------------------------------------
-; Top level interface
-; ------------------------------------------
+;;; reads an entire file as a list of Scheme data
+;;; use: (read-file "filename.scm")
 (define read-file
   (lambda (filename)
     (call-with-input-file filename
@@ -458,27 +579,11 @@
                                 (cons in (visit)))))])
           (visit))))))
 
-(define check-program
-  (lambda (v)
-    (cond
-      [(null? v)
-       #t]
-      [(pair? v)
-       (and (check-toplevel-form (car v))
-            (check-program (cdr v)))]
-      [else
-       #f])))
-
-(define check-toplevel-form
-  (lambda (v)
-    (cond
-      [(is-definition? v)
-       (check-definition v)]
-      [else
-       (check-expression v)])))
-
+;;; interface:
 (define check-file
   (lambda (filename)
     (if (string? filename)
         (check-program (read-file filename))
         (errorf 'check-file "not a string: ~s" filename))))
+
+(check-file "syntax.scm")
