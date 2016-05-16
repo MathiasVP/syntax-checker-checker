@@ -50,7 +50,7 @@ data Accept
       quoteSymbol :: Bool,
       quoteEmpty :: Bool,
       quotePair :: Bool
-    }
+    } deriving Show
 
 acceptAll :: Accept
 acceptAll = Accept {
