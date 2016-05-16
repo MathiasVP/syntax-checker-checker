@@ -187,9 +187,11 @@ accepted a = acc
 
     accLetrecBinding :: LetrecBinding -> Bool
     accLetrecBinding (LetrecBinding _ (Lambda _ e)) =
-      check [letrecBinding, variable, expression] && accExpression e
+      check [letrecBinding, variable, expression, lambda] &&
+      accExpression e
     accLetrecBinding (LetrecBinding _ (TraceLambda _ _ e)) =
-        check [letrecBinding, variable, expression] && accExpression e
+        check [letrecBinding, variable, expression, traceLambda] &&
+        accExpression e
 
 
     accQuotation :: Quotation -> Bool

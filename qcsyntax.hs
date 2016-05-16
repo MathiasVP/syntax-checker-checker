@@ -313,7 +313,9 @@ genQuotation size = oneof [ genQuoteNumber
                           , genQuotePair size]
 
 genString :: Int -> Gen String
-genString size = vectorOf (size+1) (elements ['a'..'z'])
+genString _ = do
+  len <- choose (1, 5)
+  vectorOf len (elements ['a'..'z'])
 
 genQuoteNumber :: Gen Quotation
 genQuoteNumber = fmap QuoteNumber arbitrary
