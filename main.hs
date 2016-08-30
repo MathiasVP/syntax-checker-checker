@@ -166,9 +166,6 @@ main = do
                          maxDiscardRatio = 100000,
                          maxSize = read maxsize})
                         qcheck
-      print flags
-      --removeFile "testcase.scm"
-      --removeFile "runtest.scm"
       case res of
         Success {} -> putStrLn "OK"
         GaveUp _ _ msg  -> putStrLn msg
